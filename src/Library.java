@@ -200,6 +200,17 @@ public class Library {
             String [] stringArray = s.split(",");
             addReader(new Reader(convertInt(stringArray[Reader.CARD_NUMBER_]), stringArray[Reader.NAME_],
                     stringArray[Reader.PHONE_]));
+            for (int i = Reader.BOOK_START_; i < stringArray.length - 1; i += 2) {
+                Reader r = getReaderByCard(convertInt((stringArray[Reader.CARD_NUMBER_])));
+                Book b = getBookByISBN(stringArray[i]);
+                checkOutBook(r, b);
+                String [] dateArray = stringArray[i+1].split("-");
+                int year = Integer.parseInt(dateArray[0]);
+                int month = Integer.parseInt(dateArray[1]);
+                int day = Integer.parseInt(dateArray[2]);
+                r.getBooks().get(i - Reader.BOOK_START_).setDueDate(LocalDate.of(year, month, day));
+            }
+            System.out.println(stringArray[Reader.NAME_] + " added to the library!");
         }
         return Code.SUCCESS;
     }
@@ -368,7 +379,7 @@ public class Library {
     }
     public Shelf getShelf(String subject){
         for (String subjectKey : shelves.keySet()){
-            if (shelves.get(subjectKey).equals(subject)){
+            if (subjectKey.equals(subject)){
                 return shelves.get(subject);
             }
         }
@@ -389,9 +400,9 @@ public class Library {
             readerCount = listReaders();
         } else {
             for (Reader reader : readers){
-                System.out.println(reader.getName() + "(#" + readers.indexOf(reader) + ") has the following books:\n[");
+                System.out.print(reader.getName() + "(#" + (readers.indexOf(reader) + 1) + ") has the following books:\n[");
                 for (Book book : reader.getBooks()){
-                    System.out.println(book.toString());
+                    System.out.print(book.toString());
                 }
                 System.out.println("]");
                 readerCount++;

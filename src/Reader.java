@@ -94,8 +94,12 @@ public class Reader {
     @Override
     public String toString(){
         String out = name + " (#" + cardNumber + ") has checked out {";
-        for (int i = 0; i < books.size(); i++){
-            out = out + books.get(i) + ", ";
+        if (books.size() > 1) {
+            for (int i = 0; i < books.size(); i++) {
+                out = out + books.get(i) + ", ";
+            }
+        } else {
+            out = out + books.get(0);
         }
         out = out + "}";
         return out;
