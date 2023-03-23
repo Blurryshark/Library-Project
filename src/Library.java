@@ -97,6 +97,7 @@ public class Library {
         }
         return errorCode;
     }
+    /*Nothing fancy here. just a bunch of if statements that go along how the prompt instructs to design this method*/
     public static LocalDate convertDate(String recordCountDate, Code code){
         if(recordCountDate.equals("0000")){
             return LocalDate.of(1970,1,1);
@@ -123,24 +124,35 @@ public class Library {
                 convertInt(dateCount[2], Code.DATE_CONVERSION_ERROR));
 
     }
-
+    /*Parses through the section of the csv file that lists all the books present in the library. bookCount is read from the
+    * first line of the file*/
     public Code initBooks(int bookCount, Scanner scan){
+        /*Error checking, likely unecessary, but there's no accounting for the intelligence of the people documenting anything
+        * nowadays.*/
         if (bookCount < 1){
             return Code.LIBRARY_ERROR;
         }
-
+        /*create an array to store lines from the file*/
         ArrayList<String> bookLines = new ArrayList<>();
+        /*scans ONLY THE LINES LISTING THE BOOKS into the previously created array. this will make them easier to parse*/
         for(int i = 0; i < bookCount; i++){
             bookLines.add(scan.nextLine());
         }
+        /*enhanced for loop to iterate through the list containing all the book lines*/
         for (String s : bookLines){
+            /*split each individual book line into an array to parse them based on how the books are entered into the csv
+            * we then check to make sure the the page count isn't less than zero*/
             String[] stringArray = s.split(",");
             if (convertInt(stringArray[Book.PAGE_COUNT_], Code.PAGE_COUNT_ERROR) < 1){
                 return Code.PAGE_COUNT_ERROR;
             }
+            /*IntelliJ says this is always false, but no reason not to include it. Paranoid? Maybe. But just because you're
+            * paranoid doesn't mean there isn't an invisible demon about to eat your face */
             if (convertDate(stringArray[Book.DUE_DATE_], Code.SUCCESS).equals(null)){
                 return Code.DATE_CONVERSION_ERROR;
             }
+            /*use the addBook function, defined later. Use the static final int values defined in book to pull the elements
+            * we need from the stringArray storing the book in order to use them as arguments for the new book object*/
             addBook(new Book(stringArray[Book.ISBN_], stringArray[Book.TITLE_], stringArray[Book.SUBJECT_],
                     convertInt(stringArray[Book.PAGE_COUNT_]), stringArray[Book.AUTHOR_],
                     convertDate(stringArray[Book.DUE_DATE_], Code.SUCCESS)));
@@ -156,12 +168,15 @@ public class Library {
         }
         return count;
     }
-
+    /*Initialize all the shelves from the csv file. shelfCount provided from a line parsed in the csv file in the init()
+    * method. */
     public Code initShelves(int shelfCount, Scanner scan){
         if (shelfCount < 1){
             return Code.SHELF_COUNT_ERROR;
         }
-
+        /*This behaves largely the same way as addBook(), we parse the lines into an array, and then use the split() function
+        * to parse said lines into their own individual arrays. we then use the static final int values defined in Shelf to pull
+        * the values required for the constructor from the array*/
         ArrayList<String> shelfLines = new ArrayList<>();
         for (int i = 0; i < shelfCount; i++){
             shelfLines.add(scan.nextLine());
@@ -186,12 +201,12 @@ public class Library {
         }
         return Code.SUCCESS;
     }
-
+    /*This functions the same way was initShelves() and initBooks(), but it has a hitch or two that are explained within the function*/
     public Code initReaders(int readerCount, Scanner scan){
         if (readerCount < 0){
             return Code.READER_COUNT_ERROR;
         }
-
+        /*Same deal as before, push all readers into and array, split individual lines into individual arrays for further processing*/
         ArrayList<String> readerLines = new ArrayList<>();
         for (int i = 0; i < readerCount; i++){
             readerLines.add(scan.nextLine());
@@ -200,10 +215,20 @@ public class Library {
             String [] stringArray = s.split(",");
             addReader(new Reader(convertInt(stringArray[Reader.CARD_NUMBER_]), stringArray[Reader.NAME_],
                     stringArray[Reader.PHONE_]));
+            /*After each reader is created, we need to ensure that they have all the books listed within the csv file.
+            * We use a for loop where 'i' is initally set to BOOK_START_, which is an array we use for when, in each given line
+            * that represents a reader, the listing of books actually starts. That is to say, much like how we use the static
+            * final int values to pull string elements from an array of strings that represents a reader, we are using the static
+            * final int value BOOK_START_ to know where in the line books begin to be listed. the for loop is incremented by 2
+            * every time to account for the fact that the books are listed by their isbn AND their due date*/
             for (int i = Reader.BOOK_START_; i < stringArray.length - 1; i += 2) {
+                /*the first step in this process is to call the checkOutBook function supplying the current reader and the
+                * given book (found by isbn) as parameters. */
                 Reader r = getReaderByCard(convertInt((stringArray[Reader.CARD_NUMBER_])));
                 Book b = getBookByISBN(stringArray[i]);
                 checkOutBook(r, b);
+                /*the second step is to parse the date into an array of strings and use the static method Integer.parseInt()
+                * to change the due date of the book and match it to what is provided in the csv file. */
                 String [] dateArray = stringArray[i+1].split("-");
                 int year = Integer.parseInt(dateArray[0]);
                 int month = Integer.parseInt(dateArray[1]);
@@ -214,9 +239,7 @@ public class Library {
         }
         return Code.SUCCESS;
     }
-
-
-
+    /*Checks and makes sure the supplied reader doesn't already exist within the library before adding them*/
     public Code addReader(Reader r){
         if(readers.contains(r)){
             System.out.println(r.getName() + " already has an account!");
@@ -246,6 +269,8 @@ public class Library {
         /*if we cannot find a static matching the count of books, we simply return an unknown error*/
         return Code.UNKNOWN_ERROR;
     }
+    /*Checks whether the supplied book exists within the library before adding it to the stacks. If the given book does
+    * exist, ensure that the keyValue tracking the supply of the given book is properly incremented.*/
     public Code addBook(Book newBook){
         if(books.containsKey(newBook)){
             Integer newCount = books.get(newBook);
@@ -265,6 +290,8 @@ public class Library {
         System.out.println("No shelf for " + newBook.getSubject() + " books");
         return Code.SHELF_EXISTS_ERROR;
     }
+    /*Removes a book from the reader, and adds it back on to the shelf. Checks for various conditions like if the library
+    * never had the book in the first place or if the reader doesn't have the book they are trying to return. */
     public Code returnBook(Reader reader, Book book){
         if(!reader.getBooks().contains(book)){
             System.out.println(reader.getName() + " does not have " + book.getTitle() + " checked out...");
@@ -283,6 +310,8 @@ public class Library {
             return codeCheck;
         }
     }
+    /*This does the same as return book above, but, despite being public, it's more for use within this class and the methods
+    * therein.*/
     public Code returnBook(Book book){
         if(!shelves.containsKey(book.getSubject())){
             System.out.println("No shelf for " + book.getTitle());
@@ -292,6 +321,8 @@ public class Library {
             return Code.SUCCESS;
         }
     }
+    /*Adds the supplied book to the given shelf. checks for subject mismatches and whether the supplied shelf even exists
+    * within the library */
     private Code addBookToShelf(Book book, Shelf shelf){
         Code codeCheck = returnBook(book);
         if (codeCheck.equals(Code.SUCCESS)){
@@ -309,6 +340,8 @@ public class Library {
             return codeCheck;
         }
     }
+    /*Very straightforward. Checks whether a reader is capable of checking out a book before cheking it out. if the reader is unable
+    * to check out a book then the killbots are activates in order to make an example of them*/
     public Code checkOutBook(Reader reader, Book book){
         if(!readers.contains(reader)){
             System.out.println(reader.getName() + " does not have an account here [kill bots activated]");
@@ -338,6 +371,7 @@ public class Library {
         }
         return codeCheck;
     }
+    /*Given an isbn, searches the entire keyset and compares the given string against the books in the library*/
     public Book getBookByISBN(String isbn){
         for (Book book : books.keySet()){
             if(book.getIsbn().equals(isbn)){
@@ -347,18 +381,22 @@ public class Library {
         System.out.println("ERROR: Could not find a book with isbn:" + isbn);
         return null;
     }
+    /*Given a subject, increments the amount of shelves and calls the overloaded function in order to check whether the
+    * shelf already exists and then add it to the library*/
     public Code addShelf(String subject){
         int shelfNumber = 1 + shelves.size();
         Shelf newShelf = new Shelf(shelfNumber, subject);
         Code codeCheck = addShelf(newShelf);
         return codeCheck;
     }
+    /*overloaded function. checks if the supplied shelf already exists, adds it to the library*/
     public Code addShelf(Shelf newShelf){
         if(shelves.containsKey(newShelf.getSubject())){
             System.out.println("ERROR: Shelf already exists " + newShelf.getSubject());
             return Code.SHELF_EXISTS_ERROR;
         }
         shelves.put(newShelf.getSubject(), newShelf);
+        /*parses through every book in the library and checks if it needs to be added to the shelf. */
         for (Book book: books.keySet()){
             if(book.getSubject().equals(newShelf.getSubject())){
                 for(int i = 0; i < books.get(book); i++) {
@@ -368,6 +406,7 @@ public class Library {
         }
         return Code.SUCCESS;
     }
+    /*basic getter given the shelf number*/
     public Shelf getShelf(Integer shelfNum){
         for (String subject : shelves.keySet()){
             if (shelves.get(subject).getShelfNumber() == shelfNum){
@@ -377,6 +416,7 @@ public class Library {
         System.out.println("No shelf number " + shelfNum + " found");
         return null;
     }
+    /*basic getter given the subject of the shelf*/
     public Shelf getShelf(String subject){
         for (String subjectKey : shelves.keySet()){
             if (subjectKey.equals(subject)){
@@ -386,6 +426,7 @@ public class Library {
         System.out.println("No shelf for " + subject + " books");
         return null;
     }
+    /*prints every reader's toString() and then returns the amount of readers in the library*/
     public int listReaders(){
         int readerCount = 0;
         for (Reader reader : readers){
@@ -394,6 +435,7 @@ public class Library {
         }
         return readerCount;
     }
+    /*Overloaded method, if true it lists the readers AND all the books that they have checked out. */
     public int listReaders(boolean showBooks){
         int readerCount = 0;
         if (!showBooks){
@@ -410,6 +452,7 @@ public class Library {
         }
         return readerCount;
     }
+    /*simple getter given a card number*/
     public Reader getReaderByCard(int cardNum){
         for(Reader reader : readers){
             if(reader.getCardNumber() == cardNum){
@@ -419,6 +462,7 @@ public class Library {
         System.out.println("Could not find reader with card number #" + cardNum);
         return null;
     }
+    /*removes a reader from the library. does some miscellaneous error checking*/
     public Code removeReader(Reader reader){
         if(readers.contains(reader)){
             if(!reader.getBooks().isEmpty()){
