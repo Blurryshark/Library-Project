@@ -192,7 +192,7 @@ public class Library {
     public Code listShelves(boolean showBooks){
         if(showBooks){
             for (String name : shelves.keySet()){
-                shelves.get(name).listBooks();
+                System.out.println(shelves.get(name).listBooks());
             }
         }else {
             for (String name : shelves.keySet()){
